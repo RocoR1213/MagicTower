@@ -1,0 +1,11 @@
+hero HERODATA
+posx=1
+posy=1
+face=3
+hp=1000
+atk=100
+def=100
+gold=0
+yellow_key=1
+blue_key=1
+red_key=1

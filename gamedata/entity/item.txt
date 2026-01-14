@@ -1,0 +1,5 @@
+yellow_key ITEM
+
+blue_key ITEM
+
+red_key ITEM

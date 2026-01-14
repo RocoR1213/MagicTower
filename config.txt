@@ -1,0 +1,12 @@
+#视频设置
+#windowHeight // 窗口高度
+#windowWidth  // 窗口宽度
+#地图设置
+#mapLen       // 地图长度（列数）
+#mapWid       // 地图宽度（行数）
+#mapLayers    // 地图层数
+windowHeight=600
+windowWidth=800
+mapLen=12
+mapWid=12
+mapLayers=3

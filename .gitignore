@@ -1,0 +1,8 @@
+#忽略构建文件
+build/
+#忽略qt项目文件
+.qtcreator/
+#缓存文件
+.cache/
+#git文件
+.git
