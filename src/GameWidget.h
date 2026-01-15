@@ -31,16 +31,12 @@ signals:
     void heroStatusChanged();
     // 楼层改变信号
     void floorChanged(int floor);
-    // 怪物点击信号
-    void monsterClicked(const QString& entityId);
 
 protected:
     // 绑定绘图事件
     void paintEvent(QPaintEvent *event) override;
     // 绑定键盘事件
     void keyPressEvent(QKeyEvent *event) override;
-    // 绑定鼠标点击事件
-    void mousePressEvent(QMouseEvent *event) override;
 
 private slots:
     // 响应游戏状态更新
@@ -54,11 +50,6 @@ private:
     // 绘制单个格子
     void drawBlock(QPainter &painter, int x, int y, const Block &block);
 
-    // 获取实体颜色（无图片时的回退方案）
-    QColor getEntityColor(const QString &entityId);
-    // 获取地板颜色（无图片时的回退方案）
-    QColor getFloorColor(int floorId);
-    
     // 将键盘按键转换为输入动作
     InputAction keyToAction(int key);
 
@@ -73,5 +64,4 @@ private:
     
     // 渲染参数（从配置读取）
     int blockSize;          // 格子大小（像素）
-    bool drawGridBorder;    // 是否绘制网格边框
 };

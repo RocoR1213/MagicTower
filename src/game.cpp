@@ -1,5 +1,6 @@
 #include "game.h"
 #include <QDebug>
+#include <cmath>
 
 Game::Game(Data* data, QObject *parent)
     : QObject(parent)
@@ -20,15 +21,11 @@ void Game::setCurrentFloor(int floor)
     }
 }
 
-std::shared_ptr<HeroData> Game::getHeroData()
-{
-    auto entity = gameData->getEntity("hero");
-    return std::dynamic_pointer_cast<HeroData>(entity);
-}
+
 
 bool Game::handleInput(InputAction action)
 {
-    auto hero = getHeroData();
+    auto hero = gameData->getHeroData();
     if (!hero) return false;
     
     int dx = 0, dy = 0;
@@ -37,19 +34,19 @@ bool Game::handleInput(InputAction action)
     switch (action) {
         case InputAction::MoveLeft:
             dx = -1;
-            newFace = static_cast<int>(Direction::Left);
+            newFace = DIR_LEFT;
             break;
         case InputAction::MoveUp:
             dy = -1;
-            newFace = static_cast<int>(Direction::Up);
+            newFace = DIR_UP;
             break;
         case InputAction::MoveRight:
             dx = 1;
-            newFace = static_cast<int>(Direction::Right);
+            newFace = DIR_RIGHT;
             break;
         case InputAction::MoveDown:
             dy = 1;
-            newFace = static_cast<int>(Direction::Down);
+            newFace = DIR_DOWN;
             break;
         case InputAction::None:
         default:
@@ -57,23 +54,21 @@ bool Game::handleInput(InputAction action)
     }
     
     // 更新朝向
-    hero->face = newFace;
-    
-    // 尝试移动
-    bool moved = tryMoveHero(dx, dy);
-    if (moved) {
+    if (hero->face != newFace) {
+        hero->face = newFace;
         emit heroStatusChanged();
-        emit mapUpdated();
     }
     
-    return true; // 即使没有移动也返回true表示处理了输入（因为朝向可能改变了）
+    // 处理移动
+    return processMove(dx, dy);
 }
 
-bool Game::tryMoveHero(int dx, int dy)
+bool Game::processMove(int dx, int dy)
 {
-    auto hero = getHeroData();
+    auto hero = gameData->getHeroData();
     if (!hero) return false;
     
+    // 计算新位置
     int newX = hero->posx + dx;
     int newY = hero->posy + dy;
     
@@ -83,115 +78,208 @@ bool Game::tryMoveHero(int dx, int dy)
         return false;
     }
     
-    // 获取目标格子
+    // 取得目标位置的实体
     Floor& floor = gameData->map.getFloor(currentFloor);
-    Block& targetBlock = floor.floor[newX][newY];
-    
-    // 检查是否可以通过
-    if (targetBlock.entityId == "wall") {
-        return false;  // 墙壁不可通行
-    }
-    
-    // 处理实体交互
-    if (!handleEntityInteraction(newX, newY)) {
-        return false;  // 交互失败，不能移动
-    }
-    
-    // 移动英雄
-    hero->posx = newX;
-    hero->posy = newY;
-    
-    return true;
-}
-
-bool Game::handleEntityInteraction(int x, int y)
-{
-    Floor& floor = gameData->map.getFloor(currentFloor);
-    Block& block = floor.floor[x][y];
-    QString entityId = block.entityId;
-    
-    // 空气可以直接通过
-    if (entityId == "air" || entityId.isEmpty()) {
-        return true;
-    }
-    
-    // 获取实体数据
+    Block& targetBlock = floor.getBlock(newX, newY);
+    QString entityId = targetBlock.entityId;
     auto entity = gameData->getEntity(entityId);
-    if (!entity) {
-        return true;  // 没有实体数据，默认可通过
-    }
-    
-    auto hero = getHeroData();
     
     // 根据实体类型处理交互
-    if (entity->type == "AIR") {
+    if (entityId == "air" || entityId.isEmpty()) {
+        // 仅当交互对象是AIR时才移动勇者
+        hero->posx = newX;
+        hero->posy = newY;
+        emit heroStatusChanged();
         return true;
-    } else if (entity->type == "WALL") {
+    } else if (entity && entity->type == "WALL") {
+        // 遇到WALL时保持位置不动
         return false;
-    } else if (entity->type == "DOOR") {
-        // TODO: 检查钥匙，开门
-        // 暂时直接通过
+    } else if (entity && entity->type == "DOOR") {
+        // 与DOOR交互
+        return handleDoorInteraction(newX, newY, entityId);
+    } else if (entity && entity->type == "ITEM") {
+        // 与ITEM交互
+        return handleItemInteraction(newX, newY, entityId);
+    } else if (entity && entity->type == "MONSTER") {
+        // 与MONSTER交互
+        return handleMonsterInteraction(newX, newY, entityId);
+    } else if (entity && entity->type == "STAIR") {
+        // 与STAIR交互
+        return handleStairInteraction(newX, newY, entityId);
+    } else if (entity && (entity->type == "NPC" || entity->type == "MERCHANT")) {
+        // NPC和MERCHANT的交互留空
+        return false;
+    }
+    
+    return false;
+}
+
+bool Game::handleDoorInteraction(int x, int y, const QString& entityId)
+{
+    auto hero = gameData->getHeroData();
+    if (!hero) return false;
+    
+    Floor& floor = gameData->map.getFloor(currentFloor);
+    Block& block = floor.getBlock(x, y);
+    
+    // 根据门的ID类型消耗对应颜色的钥匙
+    if (entityId.contains("yellow") || entityId.contains("door1")) {
+        if (hero->yellow_key > 0) {
+            hero->yellow_key--;
+            block.entityId = "air"; // 成功开门，设置为AIR
+            emit mapUpdated();
+            emit heroStatusChanged();
+            return true;
+        }
+    } else if (entityId.contains("blue")) {
+        if (hero->blue_key > 0) {
+            hero->blue_key--;
+            block.entityId = "air"; // 成功开门，设置为AIR
+            emit mapUpdated();
+            emit heroStatusChanged();
+            return true;
+        }
+    } else if (entityId.contains("red")) {
+        if (hero->red_key > 0) {
+            hero->red_key--;
+            block.entityId = "air"; // 成功开门，设置为AIR
+            emit mapUpdated();
+            emit heroStatusChanged();
+            return true;
+        }
+    }
+    
+    return false; // 钥匙不足，无法开门
+}
+
+bool Game::handleItemInteraction(int x, int y, const QString& entityId)
+{
+    auto hero = gameData->getHeroData();
+    if (!hero) return false;
+    
+    Floor& floor = gameData->map.getFloor(currentFloor);
+    Block& block = floor.getBlock(x, y);
+    
+    // 使用长if-else链处理每种物品ID
+    if (entityId.contains("key_yellow")) {
+        hero->yellow_key++;
+    } else if (entityId.contains("key_blue")) {
+        hero->blue_key++;
+    } else if (entityId.contains("key_red")) {
+        hero->red_key++;
+    } else if (entityId.contains("potion_red")) {
+        hero->hp += 200;
+    } else if (entityId.contains("potion_blue")) {
+        hero->hp += 500;
+    } else if (entityId.contains("gem_red")) {
+        hero->atk += 3;
+    } else if (entityId.contains("gem_blue")) {
+        hero->def += 3;
+    }
+    
+    // 物品被拾取后设置为AIR
+    block.entityId = "air";
+    emit mapUpdated();
+    emit heroStatusChanged();
+    return true;
+}
+
+bool Game::handleMonsterInteraction(int x, int y, const QString& entityId)
+{
+    auto hero = gameData->getHeroData();
+    if (!hero) return false;
+    
+    auto entity = gameData->getEntity(entityId);
+    auto monster = std::dynamic_pointer_cast<Monster>(entity);
+    if (!monster) return false;
+    
+    // 进入战斗函数
+    if (hero->atk <= monster->def) {
+        return false; // 攻击力不足，无法破防
+    }
+    
+    int heroDamage = hero->atk - monster->def;
+    int monsterDamage = qMax(0, monster->atk - hero->def);
+    
+    int turns = (monster->hp + heroDamage - 1) / heroDamage;
+    int totalDamage = (turns - 1) * monsterDamage;
+    
+    if (hero->hp > totalDamage) {
+        // 战斗胜利，勇者hp>0
+        hero->hp -= totalDamage;
+        hero->gold += monster->gold;
+        
+        // 设置怪物位置为AIR
+        Floor& floor = gameData->map.getFloor(currentFloor);
+        Block& block = floor.getBlock(x, y);
         block.entityId = "air";
+        
+        emit mapUpdated();
+        emit heroStatusChanged();
         return true;
-    } else if (entity->type == "ITEM") {
-        // TODO: 拾取物品，增加属性
-        // 暂时直接拾取
-        block.entityId = "air";
-        qDebug() << "拾取物品:" << entityId;
-        return true;
-    } else if (entity->type == "MONSTER") {
-        // TODO: 战斗逻辑
-        // 暂时直接击败
-        block.entityId = "air";
-        qDebug() << "击败怪物:" << entityId;
-        return true;
-    } else if (entity->type == "NPC") {
-        // TODO: 对话系统
-        qDebug() << "与NPC对话:" << entityId;
-        return false;  // NPC不可通过
-    } else if (entity->type == "MERCHANT") {
-        // TODO: 商店系统
-        qDebug() << "商人:" << entityId;
-        return false;  // 商人不可通过
-    } else if (entity->type == "STAIR") {
-        return handleStairInteraction(x, y);
     } else {
-        return true;
+        // 战斗失败，勇者hp<=0，进入gameover界面
+        hero->hp = 0;
+        emit gameOver();
+        return false;
     }
 }
 
-bool Game::handleStairInteraction(int x, int y)
+bool Game::handleStairInteraction(int x, int y, const QString& entityId)
 {
-    Floor& floor = gameData->map.getFloor(currentFloor);
-    Block& block = floor.floor[x][y];
-    QString entityId = block.entityId;
+    auto hero = gameData->getHeroData();
+    if (!hero) return false;
     
-    auto stairEntity = std::dynamic_pointer_cast<Stair>(gameData->getEntity(entityId));
-    if (!stairEntity) {
+    int targetLayer = -1;
+    QString targetStairId;
+    
+    if (entityId.contains("up")) {
+        targetLayer = currentFloor + 1;
+        targetStairId = "down";
+    } else if (entityId.contains("down")) {
+        targetLayer = currentFloor - 1;
+        targetStairId = "up";
+    } else {
+        return false;
+    }
+    
+    if (targetLayer >= 0 && targetLayer < gameData->map.layers) {
+        setCurrentFloor(targetLayer);
+        
+        // 寻找目标楼层的对应楼梯
+        QPoint targetPos = findEntityPos(targetLayer, targetStairId);
+        if (targetPos != QPoint(-1, -1)) {
+            hero->posx = targetPos.x();
+            hero->posy = targetPos.y();
+        } else {
+            hero->posx = x;
+            hero->posy = y;
+        }
+        
+        emit mapUpdated();
+        emit heroStatusChanged();
+        return true;
+    } else if (targetLayer >= gameData->map.layers && entityId.contains("up")) {
+        // 最高楼层上楼，触发游戏胜利
+        emit gameSuccess();
         return true;
     }
     
-    if (entityId.startsWith("up_")) {
-        if (currentFloor + 1 >= gameData->map.layers) {
-            qDebug() << "已到达最顶层，无法继续上楼";
-            return false;
-        }
-        currentFloor++;
-        qDebug() << "上楼到第" << currentFloor << "层";
-        emit floorChanged(currentFloor);
-        emit mapUpdated();
-        return true;
-    } else if (entityId.startsWith("down_")) {
-        if (currentFloor - 1 < 0) {
-            qDebug() << "已到达最底层，无法继续下楼";
-            return false;
-        }
-        currentFloor--;
-        qDebug() << "下楼到第" << currentFloor << "层";
-        emit floorChanged(currentFloor);
-        emit mapUpdated();
-        return true;
-    }
+    return false;
+}
+
+QPoint Game::findEntityPos(int layer, const QString& targetIdPart)
+{
+    if (!gameData || layer < 0 || layer >= gameData->map.layers) 
+        return QPoint(-1, -1);
     
-    return true;
+    Floor& floor = gameData->map.getFloor(layer);
+    for (int y = 0; y < gameData->map.wid; ++y) {
+        for (int x = 0; x < gameData->map.len; ++x) {
+            if (floor.getBlock(x, y).entityId.contains(targetIdPart)) {
+                return QPoint(x, y);
+            }
+        }
+    }
+    return QPoint(-1, -1);
 }

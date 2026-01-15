@@ -1,5 +1,7 @@
 #include "GameWidget.h"
 #include <QDebug>
+#include <QMessageBox>
+#include <QApplication>
 
 GameWidget::GameWidget(Data* data, Config* config, QWidget *parent)
     : QWidget(parent)
@@ -8,7 +10,6 @@ GameWidget::GameWidget(Data* data, Config* config, QWidget *parent)
 {
     // 从配置读取渲染参数
     blockSize = config->getBlockSize();
-    drawGridBorder = config->getDrawGridBorder();
     
     // 加载图片资源
     imageManager.loadResources();
@@ -20,6 +21,21 @@ GameWidget::GameWidget(Data* data, Config* config, QWidget *parent)
     connect(game, &Game::heroStatusChanged, this, &GameWidget::heroStatusChanged);
     connect(game, &Game::floorChanged, this, &GameWidget::floorChanged);
     connect(game, &Game::mapUpdated, this, &GameWidget::onMapUpdated);
+    connect(game, &Game::gameOver, this, [this]() {
+        // 显示游戏结束消息框
+        QMessageBox::information(this, "游戏结束", "你被怪物击败了！");
+        // 关闭应用程序
+        QApplication::quit();
+    });
+    connect(game, &Game::gameSuccess, this, [this]() {
+        // 获取英雄数据，显示分数（使用HP作为分数）
+        auto hero = getHeroData();
+        int score = hero ? hero->hp : 0;
+        // 显示游戏胜利消息框
+        QMessageBox::information(this, "胜利", QString("胜利：你的分数是%1").arg(score));
+        // 关闭应用程序
+        QApplication::quit();
+    });
     
     // 设置焦点策略，以便接收键盘事件
     setFocusPolicy(Qt::StrongFocus);
@@ -42,7 +58,7 @@ GameWidget::~GameWidget()
 
 std::shared_ptr<HeroData> GameWidget::getHeroData()
 {
-    return game->getHeroData();
+    return game->getGameData()->getHeroData();
 }
 
 void GameWidget::onMapUpdated()
@@ -84,38 +100,37 @@ void GameWidget::drawBlock(QPainter &painter, int x, int y, const Block &block)
     
     // 绘制地板
     QPixmap floorPixmap = imageManager.getFloorImage(block.floorId);
-    if (!floorPixmap.isNull()) {
-        // 使用图片绘制地板，缩放到格子大小
-        painter.drawPixmap(targetRect, floorPixmap);
-    } else {
-        // 回退：使用颜色填充
-        QColor floorColor = getFloorColor(block.floorId);
-        painter.fillRect(targetRect, floorColor);
-    }
+    painter.drawPixmap(targetRect, floorPixmap);
     
     // 绘制实体（填充整格，无边距）
     if (!block.entityId.isEmpty() && block.entityId != "air") {
         QPixmap entityPixmap = imageManager.getEntityImage(block.entityId);
-        if (!entityPixmap.isNull()) {
-            // 使用图片绘制实体，缩放到格子大小
-            painter.drawPixmap(targetRect, entityPixmap);
-        } else {
-            // 回退：使用颜色填充整格
-            QColor entityColor = getEntityColor(block.entityId);
-            painter.fillRect(targetRect, entityColor);
-            
-            // 在格子中央显示实体id的首字母（临时标识）
-            painter.setPen(Qt::white);
-            painter.setFont(QFont("Arial", blockSize / 4, QFont::Bold));
-            QString label = block.entityId.left(1).toUpper();
-            painter.drawText(targetRect, Qt::AlignCenter, label);
+        painter.drawPixmap(targetRect, entityPixmap);
+        
+        // 如果是怪物，显示其hp，atk，def属性
+        auto entity = gameData->getEntity(block.entityId);
+        if (entity && entity->type == "MONSTER") {
+            Monster* monster = static_cast<Monster*>(entity.get());
+            if (monster) {
+                // 设置字体和颜色
+                painter.setPen(Qt::white);
+                painter.setFont(QFont("Arial", blockSize / 6, QFont::Bold));
+                
+                // 右对齐显示属性，显示在右下角
+                QString hpText = QString("HP:%1").arg(monster->hp);
+                QString atkText = QString("ATK:%1").arg(monster->atk);
+                QString defText = QString("DEF:%1").arg(monster->def);
+                
+                // 计算文本位置
+                int margin = 2;
+                int lineHeight = blockSize / 6 + margin;
+                
+                // 绘制文本，右对齐
+                painter.drawText(px + margin, py + blockSize - 3 * lineHeight, blockSize - 2 * margin, lineHeight, Qt::AlignRight, hpText);
+                painter.drawText(px + margin, py + blockSize - 2 * lineHeight, blockSize - 2 * margin, lineHeight, Qt::AlignRight, atkText);
+                painter.drawText(px + margin, py + blockSize - lineHeight, blockSize - 2 * margin, lineHeight, Qt::AlignRight, defText);
+            }
         }
-    }
-    
-    // 根据配置决定是否绘制格子边框
-    if (drawGridBorder) {
-        painter.setPen(QColor(50, 50, 50));
-        painter.drawRect(targetRect);
     }
 }
 
@@ -128,101 +143,20 @@ void GameWidget::drawHero(QPainter &painter)
     int py = hero->posy * blockSize;
     QRect targetRect(px, py, blockSize, blockSize);
     
-    // 尝试使用图片绘制英雄
+    // 绘制英雄
     QPixmap heroPixmap = imageManager.getHeroImage(hero->face, 0);
-    if (!heroPixmap.isNull()) {
-        painter.drawPixmap(targetRect, heroPixmap);
-    } else {
-        // 回退：使用蓝色圆形表示英雄
-        int margin = blockSize / 8;
-        painter.setBrush(QColor(0, 100, 255));
-        painter.setPen(QPen(Qt::white, 2));
-        painter.drawEllipse(px + margin, py + margin, 
-                           blockSize - 2*margin, blockSize - 2*margin);
-        
-        // 根据朝向绘制一个小三角形表示方向
-        painter.setBrush(Qt::white);
-        int cx = px + blockSize / 2;
-        int cy = py + blockSize / 2;
-        int arrowSize = blockSize / 6;
-        
-        QPolygon arrow;
-        switch (hero->face) {
-            case 0:  // 左
-                arrow << QPoint(cx - arrowSize, cy)
-                      << QPoint(cx, cy - arrowSize/2)
-                      << QPoint(cx, cy + arrowSize/2);
-                break;
-            case 1:  // 上
-                arrow << QPoint(cx, cy - arrowSize)
-                      << QPoint(cx - arrowSize/2, cy)
-                      << QPoint(cx + arrowSize/2, cy);
-                break;
-            case 2:  // 右
-                arrow << QPoint(cx + arrowSize, cy)
-                      << QPoint(cx, cy - arrowSize/2)
-                      << QPoint(cx, cy + arrowSize/2);
-                break;
-            case 3:  // 下
-                arrow << QPoint(cx, cy + arrowSize)
-                      << QPoint(cx - arrowSize/2, cy)
-                      << QPoint(cx + arrowSize/2, cy);
-                break;
-        }
-        painter.drawPolygon(arrow);
-    }
-}
-
-QColor GameWidget::getEntityColor(const QString &entityId)
-{
-    // 临时颜色映射，后续替换为图片
-    if (entityId == "wall") return QColor(100, 100, 100);      // 墙壁 - 灰色
-    if (entityId == "air") return Qt::transparent;              // 空气 - 透明
-    if (entityId.startsWith("door_yellow")) return QColor(255, 215, 0);  // 黄门 - 金色
-    if (entityId.startsWith("door_blue")) return QColor(65, 105, 225);   // 蓝门 - 皇家蓝
-    if (entityId.startsWith("door_red")) return QColor(220, 20, 60);     // 红门 - 深红
-    if (entityId.startsWith("door")) return QColor(139, 69, 19);         // 其他门 - 棕色
-    if (entityId.startsWith("monster")) return QColor(255, 0, 0);        // 怪物 - 红色
-    if (entityId.startsWith("key_yellow")) return QColor(255, 255, 0);   // 黄钥匙 - 黄色
-    if (entityId.startsWith("key_blue")) return QColor(0, 191, 255);     // 蓝钥匙 - 深天蓝
-    if (entityId.startsWith("key_red")) return QColor(255, 99, 71);      // 红钥匙 - 番茄红
-    if (entityId.startsWith("item")) return QColor(255, 215, 0);         // 物品 - 金色
-    if (entityId.startsWith("potion_red")) return QColor(255, 0, 0);     // 红药水 - 红色
-    if (entityId.startsWith("potion_blue")) return QColor(0, 0, 255);    // 蓝药水 - 蓝色
-    if (entityId.startsWith("gem_red")) return QColor(255, 0, 128);      // 红宝石 - 玫红
-    if (entityId.startsWith("gem_blue")) return QColor(0, 128, 255);     // 蓝宝石 - 天蓝
-    if (entityId.startsWith("npc")) return QColor(0, 255, 0);            // NPC - 绿色
-    if (entityId.startsWith("merchant")) return QColor(255, 0, 255);     // 商人 - 紫色
-    if (entityId.startsWith("stair_up")) return QColor(144, 238, 144);   // 上楼梯 - 浅绿
-    if (entityId.startsWith("stair_down")) return QColor(255, 182, 193); // 下楼梯 - 浅粉
-    
-    return QColor(128, 128, 128);  // 默认灰色
-}
-
-QColor GameWidget::getFloorColor(int floorId)
-{
-    // 临时地板颜色
-    switch (floorId) {
-        case 0: return QColor(60, 60, 80);     // 默认地板 - 深蓝灰
-        case 1: return QColor(50, 80, 50);     // 草地 - 深绿
-        case 2: return QColor(80, 60, 40);     // 泥土 - 棕色
-        default: return QColor(60, 60, 80);
-    }
+    painter.drawPixmap(targetRect, heroPixmap);
 }
 
 InputAction GameWidget::keyToAction(int key)
 {
     switch (key) {
-        case Qt::Key_Left:
         case Qt::Key_A:
             return InputAction::MoveLeft;
-        case Qt::Key_Up:
         case Qt::Key_W:
             return InputAction::MoveUp;
-        case Qt::Key_Right:
         case Qt::Key_D:
             return InputAction::MoveRight;
-        case Qt::Key_Down:
         case Qt::Key_S:
             return InputAction::MoveDown;
         default:
@@ -242,23 +176,3 @@ void GameWidget::keyPressEvent(QKeyEvent *event)
     }
 }
 
-void GameWidget::mousePressEvent(QMouseEvent *event)
-{
-    if (event->button() == Qt::LeftButton) {
-        int x = event->pos().x() / blockSize;
-        int y = event->pos().y() / blockSize;
-        
-        if (x >= 0 && x < gameData->map.len && y >= 0 && y < gameData->map.wid) {
-            Floor& floor = gameData->map.getFloor(game->getCurrentFloor());
-            Block& block = floor.getBlock(x, y);
-            
-            if (!block.entityId.isEmpty() && block.entityId != "air") {
-                auto entity = gameData->getEntity(block.entityId);
-                if (entity && entity->type == "MONSTER") {
-                    emit monsterClicked(block.entityId);
-                }
-            }
-        }
-    }
-    QWidget::mousePressEvent(event);
-}

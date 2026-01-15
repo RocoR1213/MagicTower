@@ -13,8 +13,10 @@ void ImageManager::loadResources()
 {
     loadTerrains();
     loadAnimates();
+    loadItems();
     loadEnemys();
     loadHero();
+    loadLackResource();
 }
 
 void ImageManager::loadTerrains()
@@ -26,27 +28,10 @@ void ImageManager::loadTerrains()
         return;
     }
     
-    // 根据terrains.png的布局设置映射
-    // terrains.png 是 32像素宽，纵向排列多个32x32的精灵
-    // 行0: 草地
-    // 行1: 地板
-    // 行2: 墙壁
-    // 行3: 楼梯上
-    // 行4-5: 楼梯下
-    // 行6-9: 箭头
-    // 行10-11: 门
-    // 行12-13: 宝箱/木箱
-    // 行14-17: 空白/边框
-    
     // 地板映射
     floorSpriteMap[0] = {1, 0};  // 默认地板
     floorSpriteMap[1] = {0, 0};  // 草地
     floorSpriteMap[2] = {2, 0};  // 墙壁作为特殊地板
-    
-    // 实体映射
-    entitySpriteMap["wall"] = {10, 0};          // 墙壁将从animates.png加载
-    entitySpriteMap["up_stair"] = {6, 0};       // 上楼梯 - 第7行（索引6）
-    entitySpriteMap["down_stair"] = {5, 0};     // 下楼梯 - 第6行（索引5）
     
     // 预切割并缓存地板图片
     for (auto it = floorSpriteMap.begin(); it != floorSpriteMap.end(); ++it) {
@@ -54,11 +39,8 @@ void ImageManager::loadTerrains()
     }
     
     // 预切割并缓存实体图片
-    // 先处理terrains.png中的实体
-    entityCache["up_stair"] = cropSprite(terrainsSheet, entitySpriteMap["up_stair"].row, entitySpriteMap["up_stair"].col);
-    entityCache["down_stair"] = cropSprite(terrainsSheet, entitySpriteMap["down_stair"].row, entitySpriteMap["down_stair"].col);
-    
-    qDebug() << "地形精灵图加载完成，尺寸:" << terrainsSheet.size();
+    entityCache["up_stair"] = cropSprite(terrainsSheet, 6, 0);     // 上楼梯 - 第7行（索引6）
+    entityCache["down_stair"] = cropSprite(terrainsSheet, 5, 0);   // 下楼梯 - 第6行（索引5）
 }
 
 void ImageManager::loadHero()
@@ -70,22 +52,13 @@ void ImageManager::loadHero()
         return;
     }
     
-    // brave.png 是 4列 x 4行 的精灵图
-    // 行0: 朝下
-    // 行1: 朝左
-    // 行2: 朝右
-    // 行3: 朝上
-    // 每行4帧动画
-    
-    // 预切割并缓存所有英雄帧
+    // 预切割并缓存所有英雄帧 (4行4列)
     for (int face = 0; face < 4; ++face) {
         for (int frame = 0; frame < 4; ++frame) {
             int key = face * 4 + frame;
             heroCache[key] = cropSprite(heroSheet, face, frame);
         }
     }
-    
-    qDebug() << "英雄精灵图加载完成，尺寸:" << heroSheet.size();
 }
 
 void ImageManager::loadAnimates()
@@ -97,15 +70,16 @@ void ImageManager::loadAnimates()
         return;
     }
     
-    // animates.png是4列，纵向排列多个32x32的精灵
-    // 处理墙的材质 - 第11行第1个元素（行索引10，列索引0）
-    entityCache["wall"] = cropSprite(animatesSheet, 10, 0);
-    
-    qDebug() << "动画精灵图加载完成，尺寸:" << animatesSheet.size();
+    // 处理墙和门的材质
+    entityCache["wall"] = cropSprite(animatesSheet, 10, 0);   // 墙 - 第11行第1列（行索引10，列索引0）
+    entityCache["yellow_door"] = cropSprite(animatesSheet, 4, 0);  // 黄门 - 第五行第1列（行索引4，列索引0）
+    entityCache["blue_door"] = cropSprite(animatesSheet, 5, 0);     // 蓝门 - 第六行第1列（行索引5，列索引0）
+    entityCache["red_door"] = cropSprite(animatesSheet, 6, 0);      // 红门 - 第七行第1列（行索引6，列索引0）
 }
 
 void ImageManager::loadEnemys()
 {
+    // 加载敌人精灵图
     enemysSheet = QPixmap(":/images/enemys.png");
     if (enemysSheet.isNull()) {
         qWarning() << "无法加载敌人精灵图: :/images/enemys.png";
@@ -113,27 +87,33 @@ void ImageManager::loadEnemys()
     }
     
     // 预切割并缓存怪物图片
-    // enemys.png是2列结构，第一行第一列是绿史莱姆
-    entityCache["green_slime"] = cropSprite(enemysSheet, 0, 0);
+    entityCache["green_slime"] = cropSprite(enemysSheet, 0, 0);  // 绿史莱姆 - 第一行第一列
+}
+
+void ImageManager::loadItems()
+{
+    // 加载物品精灵图
+    itemsSheet = QPixmap(":/images/items.png");
+    if (itemsSheet.isNull()) {
+        qWarning() << "无法加载物品精灵图: :/images/items.png";
+        return;
+    }
     
-    qDebug() << "敌人精灵图加载完成，尺寸:" << enemysSheet.size();
+    // 预切割并缓存物品图片（多行1列结构）
+    entityCache["yellow_key"] = cropSprite(itemsSheet, 0, 0);    // 黄钥匙 - 第一行
+    entityCache["blue_key"] = cropSprite(itemsSheet, 1, 0);       // 蓝钥匙 - 第二行
+    entityCache["red_key"] = cropSprite(itemsSheet, 2, 0);        // 红钥匙 - 第三行
+    entityCache["atk_gem"] = cropSprite(itemsSheet, 16, 0);        // 攻击宝石 - 第十七行
+    entityCache["def_gem"] = cropSprite(itemsSheet, 17, 0);        // 防御宝石 - 第十八行
+    entityCache["hp_potion_1"] = cropSprite(itemsSheet, 20, 0);    // 生命药水1 - 第二十一行
+    entityCache["hp_potion_2"] = cropSprite(itemsSheet, 21, 0);    // 生命药水2 - 第二十二行
+    entityCache["hp_potion_3"] = cropSprite(itemsSheet, 22, 0);    // 生命药水3 - 第二十三行
 }
 
 QPixmap ImageManager::cropSprite(const QPixmap& spriteSheet, int row, int col) const
 {
-    if (spriteSheet.isNull()) {
-        return QPixmap();
-    }
-    
     int x = col * SPRITE_SIZE;
     int y = row * SPRITE_SIZE;
-    
-    // 边界检查
-    if (x + SPRITE_SIZE > spriteSheet.width() || y + SPRITE_SIZE > spriteSheet.height()) {
-        qWarning() << "精灵图切割越界: row=" << row << ", col=" << col;
-        return QPixmap();
-    }
-    
     return spriteSheet.copy(x, y, SPRITE_SIZE, SPRITE_SIZE);
 }
 
@@ -151,7 +131,8 @@ QPixmap ImageManager::getEntityImage(const QString& entityId) const
         }
     }
     
-    return QPixmap();  // 返回空图片
+    // 无法找到材质，使用缺失材质替代
+    return lackResource;
 }
 
 QPixmap ImageManager::getFloorImage(int floorId) const
@@ -159,8 +140,9 @@ QPixmap ImageManager::getFloorImage(int floorId) const
     if (floorCache.contains(floorId)) {
         return floorCache[floorId];
     }
-    // 默认返回地板0
-    return floorCache.value(0, QPixmap());
+    // 默认返回地板0，如果地板0不存在则使用缺失材质
+    QPixmap floorImage = floorCache.value(0);
+    return floorImage.isNull() ? lackResource : floorImage;
 }
 
 QPixmap ImageManager::getHeroImage(int face, int frame) const
@@ -178,21 +160,15 @@ QPixmap ImageManager::getHeroImage(int face, int frame) const
     }
     
     int key = spriteRow * 4 + (frame % 4);
-    return heroCache.value(key, QPixmap());
+    QPixmap heroImage = heroCache.value(key);
+    return heroImage.isNull() ? lackResource : heroImage;
 }
 
-bool ImageManager::hasEntityImage(const QString& entityId) const
+void ImageManager::loadLackResource()
 {
-    if (entityCache.contains(entityId)) {
-        return true;
+    // 加载缺失材质
+    lackResource = QPixmap(":/images/lack_resource.png");
+    if (lackResource.isNull()) {
+        qFatal("无法加载缺失材质: :/images/lack_resource.png");
     }
-    
-    // 尝试通过前缀匹配
-    for (auto it = entityCache.begin(); it != entityCache.end(); ++it) {
-        if (entityId.startsWith(it.key())) {
-            return true;
-        }
-    }
-    
-    return false;
 }

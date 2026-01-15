@@ -5,5 +5,7 @@
         <file alias="images/terrains.png">resources/images/terrains.png</file>
         <file alias="images/animates.png">resources/images/animates.png</file>
         <file alias="images/enemys.png">resources/images/enemys.png</file>
+        <file alias="images/items.png">resources/images/items.png</file>
+        <file alias="images/lack_resource.png">resources/images/lack_resource.png</file>
     </qresource>
 </RCC>

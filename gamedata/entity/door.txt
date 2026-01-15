@@ -1,0 +1,5 @@
+yellow_door DOOR
+
+blue_door DOOR
+
+red_door DOOR

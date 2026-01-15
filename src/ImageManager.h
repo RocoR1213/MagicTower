@@ -32,9 +32,6 @@ public:
     // frame: 0-3 动画帧
     QPixmap getHeroImage(int face, int frame = 0) const;
     
-    // 检查是否有该实体的图片
-    bool hasEntityImage(const QString& entityId) const;
-    
     // 原始精灵图尺寸
     static const int SPRITE_SIZE = 32;
 
@@ -51,8 +48,14 @@ private:
     // 加载敌人精灵图
     void loadEnemys();
     
+    // 加载物品精灵图
+    void loadItems();
+    
     // 加载英雄精灵图
     void loadHero();
+    
+    // 加载缺失材质
+    void loadLackResource();
     
     // 地形精灵图
     QPixmap terrainsSheet;
@@ -62,6 +65,10 @@ private:
     QPixmap enemysSheet;
     // 英雄精灵图
     QPixmap heroSheet;
+    // 物品精灵图
+    QPixmap itemsSheet;
+    // 缺失材质
+    QPixmap lackResource;
     
     // 实体ID到精灵图位置的映射
     QMap<QString, SpriteInfo> entitySpriteMap;

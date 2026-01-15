@@ -3,3 +3,13 @@ yellow_key ITEM
 blue_key ITEM
 
 red_key ITEM
+
+atk_gem ITEM
+
+def_gem ITEM
+
+hp_potion_1 ITEM
+
+hp_potion_2 ITEM
+
+hp_potion_3 ITEM

@@ -35,7 +35,7 @@ public:
 
     std::shared_ptr<Entity> getEntity(QString id){return entity[id];}
 
-    std::shared_ptr<Entity> getHeroData();
+    std::shared_ptr<HeroData> getHeroData();
 
     std::shared_ptr<Entity> getXY(int x,int y,int layer);
 

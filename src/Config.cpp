@@ -18,32 +18,22 @@ static QStringList configKey =
     "mapLayers",        // 地图层数
     //渲染设置
     "blockSize",        // 格子大小（像素）
-    "entityMargin",     // 实体边距（像素）
-    "heroMargin",       // 英雄边距（像素）
-    "arrowSize",        // 方向箭头大小（像素）
-    "entityFontSize",   // 实体标识字体大小
     "statusPanelWidth", // 状态面板宽度
-    "drawGridBorder"    // 是否绘制网格边框（0或1）
 };
 
 //Config构造函数实现
 Config::Config()
 {
-    // 初始化config映射，设置默认值
+    //初始化config映射，设置默认值
     config["windowTitle"] = "魔塔";
     config["windowHeight"] = "800";
     config["windowWidth"] = "1000";
     config["mapLen"] = "12";
     config["mapWid"] = "12";
     config["mapLayers"] = "3";
-    // 渲染参数默认值
-    config["blockSize"] = "64";         // 格子大小64像素
-    config["entityMargin"] = "4";       // 实体边距4像素
-    config["heroMargin"] = "6";         // 英雄边距6像素
-    config["arrowSize"] = "10";         // 方向箭头大小10像素
-    config["entityFontSize"] = "14";    // 实体标识字体大小14
-    config["statusPanelWidth"] = "180"; // 状态面板宽度180像素
-    config["drawGridBorder"] = "0";     // 默认不绘制网格边框
+    //渲染参数默认值
+    config["blockSize"] = "64";         //格子大小64像素
+    config["statusPanelWidth"] = "180"; //状态面板宽度180像素
 }
 
 void Config::readConfig()

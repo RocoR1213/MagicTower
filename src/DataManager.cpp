@@ -234,9 +234,9 @@ void Data::LoadEntity()
     }
 }
 
-std::shared_ptr<Entity> Data::getHeroData()
+std::shared_ptr<HeroData> Data::getHeroData()
 {
-    return entity.value("hero", nullptr);
+    return std::dynamic_pointer_cast<HeroData>(entity.value("hero", nullptr));
 }
 
 std::shared_ptr<Entity> Data::getXY(int x, int y,int layer)
