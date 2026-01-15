@@ -5,6 +5,7 @@
 #include <QDir>
 #include <QCoreApplication>
 #include <memory>
+#include <QStringList>
 
 static QStringList EntityType = 
 {
@@ -15,7 +16,8 @@ static QStringList EntityType =
     "ITEM",
     "MONSTER",
     "NPC",
-    "MERCHANT"
+    "MERCHANT",
+    "STAIR"
 };
 
 void Data::LoadMap(int mapLen, int mapWid, int mapLayers)
@@ -175,6 +177,10 @@ void Data::LoadEntity()
                     entityObj = std::make_shared<NPC>();
                 else if (entityType == "MERCHANT")
                     entityObj = std::make_shared<Merchant>();
+                else if (entityType == "STAIR")
+                {
+                    entityObj = std::make_shared<Stair>();
+                }
                 else
                     throw QString("未知实体类型:" + entityType + " 行:" + line);
                 entityObj->id = entityId;
@@ -241,4 +247,16 @@ std::shared_ptr<Entity> Data::getXY(int x, int y,int layer)
     // 默认获取第layer层坐标X,Y的实体
     QString entityId = map.map[layer].floor[x][y].entityId;
     return entity.value(entityId, nullptr);
+}
+
+void Data::setEntity(const QString& id, int x, int y, int layer)
+{
+    if (x < 0 || x >= map.len || y < 0 || y >= map.wid || layer < 0 || layer >= map.map.size())
+        return;
+    map.map[layer].floor[x][y].entityId = id;
+}
+
+void Data::removeEntity(int x, int y, int layer)
+{
+    setEntity("air", x, y, layer);
 }

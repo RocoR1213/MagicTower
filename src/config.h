@@ -24,4 +24,12 @@ public:
         return config.value(key).toInt();
     }
     
+    // 获取渲染参数的便捷方法
+    int getBlockSize() const { return getInt("blockSize"); }
+    int getEntityMargin() const { return getInt("entityMargin"); }
+    int getHeroMargin() const { return getInt("heroMargin"); }
+    int getArrowSize() const { return getInt("arrowSize"); }
+    int getEntityFontSize() const { return getInt("entityFontSize"); }
+    int getStatusPanelWidth() const { return getInt("statusPanelWidth"); }
+    bool getDrawGridBorder() const { return config.value("drawGridBorder") == "1"; }
 };

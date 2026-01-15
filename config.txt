@@ -1,5 +1,5 @@
 #视频设置
-#windowTitle  // 窗口名称
+#windowTitle   // 窗口标题
 #windowHeight // 窗口高度
 #windowWidth  // 窗口宽度
 #地图设置
@@ -16,7 +16,7 @@
 #drawGridBorder   // 是否绘制网格边框（0或1）
 windowTitle=魔塔
 windowHeight=800
-windowWidth=1000
+windowWidth=1200
 mapLen=12
 mapWid=12
 mapLayers=3

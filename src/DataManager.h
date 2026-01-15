@@ -39,6 +39,10 @@ public:
 
     std::shared_ptr<Entity> getXY(int x,int y,int layer);
 
+    void setEntity(const QString& id, int x, int y, int layer);
+    
+    void removeEntity(int x, int y, int layer);
+
     Map map;
     QMap<QString,std::shared_ptr<Entity>> entity;
 };

@@ -84,3 +84,9 @@ class Merchant : public Entity
 public:
     Merchant() : Entity("MERCHANT"){}
 };
+
+class Stair : public Entity
+{
+public:
+    Stair() : Entity("STAIR"){}
+};

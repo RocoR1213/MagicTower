@@ -57,6 +57,8 @@ private:
     bool tryMoveHero(int dx, int dy);
     // 处理实体交互
     bool handleEntityInteraction(int x, int y);
+    // 处理楼梯交互
+    bool handleStairInteraction(int x, int y);
     
     // 数据管理器指针
     Data* gameData;

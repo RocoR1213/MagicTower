@@ -153,7 +153,45 @@ bool Game::handleEntityInteraction(int x, int y)
         // TODO: 商店系统
         qDebug() << "商人:" << entityId;
         return false;  // 商人不可通过
+    } else if (entity->type == "STAIR") {
+        return handleStairInteraction(x, y);
     } else {
         return true;
     }
+}
+
+bool Game::handleStairInteraction(int x, int y)
+{
+    Floor& floor = gameData->map.getFloor(currentFloor);
+    Block& block = floor.floor[x][y];
+    QString entityId = block.entityId;
+    
+    auto stairEntity = std::dynamic_pointer_cast<Stair>(gameData->getEntity(entityId));
+    if (!stairEntity) {
+        return true;
+    }
+    
+    if (entityId.startsWith("up_")) {
+        if (currentFloor + 1 >= gameData->map.layers) {
+            qDebug() << "已到达最顶层，无法继续上楼";
+            return false;
+        }
+        currentFloor++;
+        qDebug() << "上楼到第" << currentFloor << "层";
+        emit floorChanged(currentFloor);
+        emit mapUpdated();
+        return true;
+    } else if (entityId.startsWith("down_")) {
+        if (currentFloor - 1 < 0) {
+            qDebug() << "已到达最底层，无法继续下楼";
+            return false;
+        }
+        currentFloor--;
+        qDebug() << "下楼到第" << currentFloor << "层";
+        emit floorChanged(currentFloor);
+        emit mapUpdated();
+        return true;
+    }
+    
+    return true;
 }

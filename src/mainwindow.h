@@ -24,12 +24,16 @@ private slots:
     void updateStatusPanel();
     // 楼层变化
     void onFloorChanged(int floor);
+    // 显示怪物信息
+    void showMonsterInfo(const QString& entityId);
 
 private:
     // 初始化UI
     void setupUI();
     // 创建状态面板
     QWidget* createStatusPanel();
+    // 创建信息面板
+    QWidget* createInfoPanel();
 
     // 数据管理器
     Data* gameData;
@@ -47,4 +51,14 @@ private:
     QLabel* yellowKeyLabel;
     QLabel* blueKeyLabel;
     QLabel* redKeyLabel;
+    
+    // 右侧信息面板标签
+    QLabel* infoTitleLabel;
+    QLabel* infoNameLabel;
+    QLabel* infoTypeLabel;
+    QLabel* infoHpLabel;
+    QLabel* infoAtkLabel;
+    QLabel* infoDefLabel;
+    QLabel* infoGoldLabel;
+    QLabel* infoDamageLabel;
 };

@@ -9,7 +9,7 @@
 static QStringList configKey = 
 {
     //视频设置
-    "windowTitle",      // 窗口名称
+    "windowTitle",      // 窗口标题
     "windowHeight",     // 窗口高度
     "windowWidth",      // 窗口宽度
     //地图设置

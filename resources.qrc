@@ -1,0 +1,9 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/">
+        <file alias="images/brave.png">resources/images/brave.png</file>
+        <file alias="images/terrains.png">resources/images/terrains.png</file>
+        <file alias="images/animates.png">resources/images/animates.png</file>
+        <file alias="images/enemys.png">resources/images/enemys.png</file>
+    </qresource>
+</RCC>

@@ -7,12 +7,11 @@ GameWidget::GameWidget(Data* data, Config* config, QWidget *parent)
     , gameConfig(config)
 {
     // 从配置读取渲染参数
-    blockSize = config->getInt("blockSize");
-    entityMargin = config->getInt("entityMargin");
-    heroMargin = config->getInt("heroMargin");
-    arrowSize = config->getInt("arrowSize");
-    entityFontSize = config->getInt("entityFontSize");
-    drawGridBorder = config->config.value("drawGridBorder") == "1";
+    blockSize = config->getBlockSize();
+    drawGridBorder = config->getDrawGridBorder();
+    
+    // 加载图片资源
+    imageManager.loadResources();
     
     // 创建游戏逻辑处理器
     game = new Game(data, this);
@@ -55,7 +54,9 @@ void GameWidget::paintEvent(QPaintEvent *event)
 {
     Q_UNUSED(event);
     QPainter painter(this);
-    painter.setRenderHint(QPainter::Antialiasing);
+    
+    // 使用平滑缩放以获得更好的图片质量
+    painter.setRenderHint(QPainter::SmoothPixmapTransform);
     
     // 绘制地图（包含地板和实体）
     drawMap(painter);
@@ -79,33 +80,42 @@ void GameWidget::drawBlock(QPainter &painter, int x, int y, const Block &block)
 {
     int px = x * blockSize;
     int py = y * blockSize;
+    QRect targetRect(px, py, blockSize, blockSize);
     
-    // 绘制地板（无缝隙，完全填充格子）
-    QColor floorColor = getFloorColor(block.floorId);
-    painter.fillRect(px, py, blockSize, blockSize, floorColor);
+    // 绘制地板
+    QPixmap floorPixmap = imageManager.getFloorImage(block.floorId);
+    if (!floorPixmap.isNull()) {
+        // 使用图片绘制地板，缩放到格子大小
+        painter.drawPixmap(targetRect, floorPixmap);
+    } else {
+        // 回退：使用颜色填充
+        QColor floorColor = getFloorColor(block.floorId);
+        painter.fillRect(targetRect, floorColor);
+    }
     
-    // 绘制实体
+    // 绘制实体（填充整格，无边距）
     if (!block.entityId.isEmpty() && block.entityId != "air") {
-        QColor entityColor = getEntityColor(block.entityId);
-        
-        // 实体绘制为圆角矩形，略小于格子
-        painter.setBrush(entityColor);
-        painter.setPen(Qt::black);
-        painter.drawRoundedRect(px + entityMargin, py + entityMargin, 
-                               blockSize - 2*entityMargin, blockSize - 2*entityMargin, 
-                               5, 5);
-        
-        // 在格子中央显示实体id的首字母（临时标识）
-        painter.setPen(Qt::white);
-        painter.setFont(QFont("Arial", entityFontSize, QFont::Bold));
-        QString label = block.entityId.left(1).toUpper();
-        painter.drawText(px, py, blockSize, blockSize, Qt::AlignCenter, label);
+        QPixmap entityPixmap = imageManager.getEntityImage(block.entityId);
+        if (!entityPixmap.isNull()) {
+            // 使用图片绘制实体，缩放到格子大小
+            painter.drawPixmap(targetRect, entityPixmap);
+        } else {
+            // 回退：使用颜色填充整格
+            QColor entityColor = getEntityColor(block.entityId);
+            painter.fillRect(targetRect, entityColor);
+            
+            // 在格子中央显示实体id的首字母（临时标识）
+            painter.setPen(Qt::white);
+            painter.setFont(QFont("Arial", blockSize / 4, QFont::Bold));
+            QString label = block.entityId.left(1).toUpper();
+            painter.drawText(targetRect, Qt::AlignCenter, label);
+        }
     }
     
     // 根据配置决定是否绘制格子边框
     if (drawGridBorder) {
         painter.setPen(QColor(50, 50, 50));
-        painter.drawRect(px, py, blockSize, blockSize);
+        painter.drawRect(targetRect);
     }
 }
 
@@ -116,42 +126,51 @@ void GameWidget::drawHero(QPainter &painter)
     
     int px = hero->posx * blockSize;
     int py = hero->posy * blockSize;
+    QRect targetRect(px, py, blockSize, blockSize);
     
-    // 英雄用蓝色圆形表示
-    painter.setBrush(QColor(0, 100, 255));
-    painter.setPen(QPen(Qt::white, 2));
-    painter.drawEllipse(px + heroMargin, py + heroMargin, 
-                       blockSize - 2*heroMargin, blockSize - 2*heroMargin);
-    
-    // 根据朝向绘制一个小三角形表示方向
-    painter.setBrush(Qt::white);
-    int cx = px + blockSize / 2;
-    int cy = py + blockSize / 2;
-    
-    QPolygon arrow;
-    switch (hero->face) {
-        case 0:  // 左
-            arrow << QPoint(cx - arrowSize, cy)
-                  << QPoint(cx, cy - arrowSize/2)
-                  << QPoint(cx, cy + arrowSize/2);
-            break;
-        case 1:  // 上
-            arrow << QPoint(cx, cy - arrowSize)
-                  << QPoint(cx - arrowSize/2, cy)
-                  << QPoint(cx + arrowSize/2, cy);
-            break;
-        case 2:  // 右
-            arrow << QPoint(cx + arrowSize, cy)
-                  << QPoint(cx, cy - arrowSize/2)
-                  << QPoint(cx, cy + arrowSize/2);
-            break;
-        case 3:  // 下
-            arrow << QPoint(cx, cy + arrowSize)
-                  << QPoint(cx - arrowSize/2, cy)
-                  << QPoint(cx + arrowSize/2, cy);
-            break;
+    // 尝试使用图片绘制英雄
+    QPixmap heroPixmap = imageManager.getHeroImage(hero->face, 0);
+    if (!heroPixmap.isNull()) {
+        painter.drawPixmap(targetRect, heroPixmap);
+    } else {
+        // 回退：使用蓝色圆形表示英雄
+        int margin = blockSize / 8;
+        painter.setBrush(QColor(0, 100, 255));
+        painter.setPen(QPen(Qt::white, 2));
+        painter.drawEllipse(px + margin, py + margin, 
+                           blockSize - 2*margin, blockSize - 2*margin);
+        
+        // 根据朝向绘制一个小三角形表示方向
+        painter.setBrush(Qt::white);
+        int cx = px + blockSize / 2;
+        int cy = py + blockSize / 2;
+        int arrowSize = blockSize / 6;
+        
+        QPolygon arrow;
+        switch (hero->face) {
+            case 0:  // 左
+                arrow << QPoint(cx - arrowSize, cy)
+                      << QPoint(cx, cy - arrowSize/2)
+                      << QPoint(cx, cy + arrowSize/2);
+                break;
+            case 1:  // 上
+                arrow << QPoint(cx, cy - arrowSize)
+                      << QPoint(cx - arrowSize/2, cy)
+                      << QPoint(cx + arrowSize/2, cy);
+                break;
+            case 2:  // 右
+                arrow << QPoint(cx + arrowSize, cy)
+                      << QPoint(cx, cy - arrowSize/2)
+                      << QPoint(cx, cy + arrowSize/2);
+                break;
+            case 3:  // 下
+                arrow << QPoint(cx, cy + arrowSize)
+                      << QPoint(cx - arrowSize/2, cy)
+                      << QPoint(cx + arrowSize/2, cy);
+                break;
+        }
+        painter.drawPolygon(arrow);
     }
-    painter.drawPolygon(arrow);
 }
 
 QColor GameWidget::getEntityColor(const QString &entityId)
@@ -216,10 +235,30 @@ void GameWidget::keyPressEvent(QKeyEvent *event)
     InputAction action = keyToAction(event->key());
     
     if (action != InputAction::None) {
-        // 将输入动作传递给游戏逻辑处理器
         game->handleInput(action);
         update();  // 重绘
     } else {
         QWidget::keyPressEvent(event);
     }
+}
+
+void GameWidget::mousePressEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton) {
+        int x = event->pos().x() / blockSize;
+        int y = event->pos().y() / blockSize;
+        
+        if (x >= 0 && x < gameData->map.len && y >= 0 && y < gameData->map.wid) {
+            Floor& floor = gameData->map.getFloor(game->getCurrentFloor());
+            Block& block = floor.getBlock(x, y);
+            
+            if (!block.entityId.isEmpty() && block.entityId != "air") {
+                auto entity = gameData->getEntity(block.entityId);
+                if (entity && entity->type == "MONSTER") {
+                    emit monsterClicked(block.entityId);
+                }
+            }
+        }
+    }
+    QWidget::mousePressEvent(event);
 }
