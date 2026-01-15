@@ -127,11 +127,6 @@ QWidget* MainWindow::createStatusPanel()
     
     layout->addSpacing(10);
     
-    // 钥匙标题
-    QLabel* keyTitle = new QLabel("钥匙", panel);
-    keyTitle->setStyleSheet("color: #CCC; font-weight: bold;");
-    layout->addWidget(keyTitle);
-    
     // 黄钥匙
     yellowKeyLabel = new QLabel("黄钥匙: 0", panel);
     yellowKeyLabel->setStyleSheet("color: #FFD700;");
@@ -237,10 +232,6 @@ QWidget* MainWindow::createInfoPanel()
     layout->addWidget(infoGoldLabel);
     
     layout->addSpacing(10);
-    
-    QLabel* damageTitle = new QLabel("预计损失", panel);
-    damageTitle->setStyleSheet("color: #CCC; font-weight: bold;");
-    layout->addWidget(damageTitle);
     
     infoDamageLabel = new QLabel("HP损失: 0", panel);
     infoDamageLabel->setStyleSheet("color: #FF4500; font-weight: bold;");

@@ -58,10 +58,6 @@ void ImageManager::loadTerrains()
     entityCache["up_stair"] = cropSprite(terrainsSheet, entitySpriteMap["up_stair"].row, entitySpriteMap["up_stair"].col);
     entityCache["down_stair"] = cropSprite(terrainsSheet, entitySpriteMap["down_stair"].row, entitySpriteMap["down_stair"].col);
     
-    // 预切割并缓存怪物图片 - 从enemys.png加载
-    // enemys.png是2列结构，第一行第一列是绿史莱姆
-    entityCache["green_slime"] = cropSprite(enemysSheet, 0, 0);
-    
     qDebug() << "地形精灵图加载完成，尺寸:" << terrainsSheet.size();
 }
 
@@ -115,6 +111,10 @@ void ImageManager::loadEnemys()
         qWarning() << "无法加载敌人精灵图: :/images/enemys.png";
         return;
     }
+    
+    // 预切割并缓存怪物图片
+    // enemys.png是2列结构，第一行第一列是绿史莱姆
+    entityCache["green_slime"] = cropSprite(enemysSheet, 0, 0);
     
     qDebug() << "敌人精灵图加载完成，尺寸:" << enemysSheet.size();
 }
