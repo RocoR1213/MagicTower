@@ -9,7 +9,7 @@ wall air air air air air air air air air air wall
 wall air air air air air air air air air air wall
 wall air air air air air air air air air air wall
 wall air air air air air air air air air air wall
-wall air air air air air air air air air air wall
+wall air air air air air air air air air up_stair wall
 wall wall wall wall wall wall wall wall wall wall wall wall
 floor
 0 0 0 0 0 0 0 0 0 0 0 0
