@@ -19,7 +19,7 @@ MainWindow::~MainWindow()
 void MainWindow::setupUI()
 {
     // 设置窗口标题
-    setWindowTitle("魔塔");
+    setWindowTitle(gameConfig->config["windowTitle"]);
     
     // 创建中央部件
     QWidget* centralWidget = new QWidget(this);
@@ -43,7 +43,7 @@ void MainWindow::setupUI()
     // 创建状态面板（使用配置中的宽度）
     QWidget* statusPanel = createStatusPanel();
     mainLayout->addWidget(statusPanel);
-    statusPanel->setFixedWidth(gameConfig->getStatusPanelWidth());
+    statusPanel->setFixedWidth(gameConfig->getInt("statusPanelWidth"));
     
     // 设置窗口背景
     setStyleSheet("QMainWindow { background-color: #2d2d2d; }");

@@ -24,6 +24,11 @@ set(PROJECT_SOURCES
     src/DataManager.cpp
     src/GameWidget.h
     src/GameWidget.cpp
+    src/game.h
+    src/game.cpp
+    src/ImageManager.h
+    src/ImageManager.cpp
+    resources.qrc
 )
 
 if(${QT_VERSION_MAJOR} GREATER_EQUAL 6)

@@ -9,6 +9,7 @@
 static QStringList configKey = 
 {
     //视频设置
+    "windowTitle",      // 窗口标题
     "windowHeight",     // 窗口高度
     "windowWidth",      // 窗口宽度
     //地图设置
@@ -29,6 +30,7 @@ static QStringList configKey =
 Config::Config()
 {
     // 初始化config映射，设置默认值
+    config["windowTitle"] = "魔塔";
     config["windowHeight"] = "800";
     config["windowWidth"] = "1000";
     config["mapLen"] = "12";
