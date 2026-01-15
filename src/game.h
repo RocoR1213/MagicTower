@@ -1,65 +1,43 @@
-//====================
-//游戏逻辑处理
-//====================
 #pragma once
-#include <QObject>
+#include <vector>
 #include <memory>
+#include <QString>
 #include "DataManager.h"
+#include "Entity.h"
 
-// 移动方向枚举
-enum class Direction {
-    Left = 0,
-    Up = 1,
-    Right = 2,
-    Down = 3
+// 地图变更结构体
+struct MapChange {
+    int x;
+    int y;
+    int layer;
+    QString newEntityId;
 };
 
-// 输入动作枚举
-enum class InputAction {
-    None,
-    MoveLeft,
-    MoveUp,
-    MoveRight,
-    MoveDown
-};
-
-class Game : public QObject
-{
-    Q_OBJECT
-
+class Game {
 public:
-    explicit Game(Data* data, QObject *parent = nullptr);
-    ~Game();
+    Game(Data* data);
     
-    // 处理输入动作
-    bool handleInput(InputAction action);
-    
-    // 设置当前楼层
-    void setCurrentFloor(int floor);
-    int getCurrentFloor() const { return currentFloor; }
-    
-    // 获取英雄数据
-    std::shared_ptr<HeroData> getHeroData();
-    
-    // 获取游戏数据
-    Data* getGameData() const { return gameData; }
+    // 处理当前层(x, y)位置的交互
+    // 返回 true 表示允许移动/交互成功
+    // 返回 false 表示移动被阻止（如撞墙、打不过怪物、没钥匙）
+    bool handleInteraction(int x, int y, int layer, HeroData* hero, QString& message);
 
-signals:
-    // 英雄状态改变信号
-    void heroStatusChanged();
-    // 楼层改变信号
-    void floorChanged(int floor);
-    // 地图更新信号（实体被移除等）
-    void mapUpdated();
+    // 将缓冲区中的地图变更应用到游戏数据中
+    void applyMapChanges();
+
+    // 获取待处理的楼层切换请求（-1表示无请求）
+    int getPendingLayerChange() const { return pendingLayerChange; }
+    // 清除楼层切换请求
+    void clearPendingLayerChange() { pendingLayerChange = -1; }
 
 private:
-    // 尝试移动英雄
-    bool tryMoveHero(int dx, int dy);
-    // 处理实体交互
-    bool handleEntityInteraction(int x, int y);
-    
-    // 数据管理器指针
     Data* gameData;
-    // 当前楼层
-    int currentFloor;
+    std::vector<MapChange> changeBuffer;
+    int pendingLayerChange = -1; // 存储即将切换到的楼层索引
+
+    // 特定实体的交互辅助函数
+    bool interactWithMonster(Monster* monster, HeroData* hero, QString& message);
+    bool interactWithItem(Item* item, HeroData* hero, QString& message);
+    bool interactWithDoor(Door* door, HeroData* hero, QString& message);
+    bool interactWithStair(const QString& entityId, int currentLayer, QString& message);
 };
