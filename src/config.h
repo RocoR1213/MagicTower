@@ -13,19 +13,15 @@ public:
     void readConfig();
     QMap<QString, QString> config;
     
-    // 重载[]运算符，方便访问配置项
+    //重载[]运算符，方便访问配置项
     QString& operator[](const QString& key)
     {
         return config[key];
-    }
-    
-    QString operator[](const QString& key) const
-    {
-        return config.value(key);
     }
     
     int getInt(const QString& key) const
     {
         return config.value(key).toInt();
     }
+    
 };

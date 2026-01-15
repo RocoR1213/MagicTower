@@ -1,16 +1,31 @@
 #include "GameWidget.h"
 #include <QDebug>
 
-GameWidget::GameWidget(Data* data, QWidget *parent)
+GameWidget::GameWidget(Data* data, Config* config, QWidget *parent)
     : QWidget(parent)
     , gameData(data)
-    , currentFloor(0)
-    , blockSize(40)  // 每格40像素
+    , gameConfig(config)
 {
+    // 从配置读取渲染参数
+    blockSize = config->getInt("blockSize");
+    entityMargin = config->getInt("entityMargin");
+    heroMargin = config->getInt("heroMargin");
+    arrowSize = config->getInt("arrowSize");
+    entityFontSize = config->getInt("entityFontSize");
+    drawGridBorder = config->config.value("drawGridBorder") == "1";
+    
+    // 创建游戏逻辑处理器
+    game = new Game(data, this);
+    
+    // 连接游戏逻辑信号
+    connect(game, &Game::heroStatusChanged, this, &GameWidget::heroStatusChanged);
+    connect(game, &Game::floorChanged, this, &GameWidget::floorChanged);
+    connect(game, &Game::mapUpdated, this, &GameWidget::onMapUpdated);
+    
     // 设置焦点策略，以便接收键盘事件
     setFocusPolicy(Qt::StrongFocus);
     
-    // 根据地图大小设置组件尺寸
+    // 根据地图大小和格子大小设置组件尺寸
     int width = gameData->map.len * blockSize;
     int height = gameData->map.wid * blockSize;
     setFixedSize(width, height);
@@ -26,19 +41,14 @@ GameWidget::~GameWidget()
 {
 }
 
-void GameWidget::setCurrentFloor(int floor)
-{
-    if (floor >= 0 && floor < gameData->map.layers) {
-        currentFloor = floor;
-        emit floorChanged(floor);
-        update();  // 重绘
-    }
-}
-
 std::shared_ptr<HeroData> GameWidget::getHeroData()
 {
-    auto entity = gameData->getEntity("hero");
-    return std::dynamic_pointer_cast<HeroData>(entity);
+    return game->getHeroData();
+}
+
+void GameWidget::onMapUpdated()
+{
+    update();  // 重绘
 }
 
 void GameWidget::paintEvent(QPaintEvent *event)
@@ -55,7 +65,7 @@ void GameWidget::paintEvent(QPaintEvent *event)
 
 void GameWidget::drawMap(QPainter &painter)
 {
-    Floor& floor = gameData->map.getFloor(currentFloor);
+    Floor& floor = gameData->map.getFloor(game->getCurrentFloor());
     
     for (int y = 0; y < gameData->map.wid; ++y) {
         for (int x = 0; x < gameData->map.len; ++x) {
@@ -70,7 +80,7 @@ void GameWidget::drawBlock(QPainter &painter, int x, int y, const Block &block)
     int px = x * blockSize;
     int py = y * blockSize;
     
-    // 绘制地板
+    // 绘制地板（无缝隙，完全填充格子）
     QColor floorColor = getFloorColor(block.floorId);
     painter.fillRect(px, py, blockSize, blockSize, floorColor);
     
@@ -79,23 +89,24 @@ void GameWidget::drawBlock(QPainter &painter, int x, int y, const Block &block)
         QColor entityColor = getEntityColor(block.entityId);
         
         // 实体绘制为圆角矩形，略小于格子
-        int margin = 2;
         painter.setBrush(entityColor);
         painter.setPen(Qt::black);
-        painter.drawRoundedRect(px + margin, py + margin, 
-                               blockSize - 2*margin, blockSize - 2*margin, 
+        painter.drawRoundedRect(px + entityMargin, py + entityMargin, 
+                               blockSize - 2*entityMargin, blockSize - 2*entityMargin, 
                                5, 5);
         
         // 在格子中央显示实体id的首字母（临时标识）
         painter.setPen(Qt::white);
-        painter.setFont(QFont("Arial", 10, QFont::Bold));
+        painter.setFont(QFont("Arial", entityFontSize, QFont::Bold));
         QString label = block.entityId.left(1).toUpper();
         painter.drawText(px, py, blockSize, blockSize, Qt::AlignCenter, label);
     }
     
-    // 绘制格子边框
-    painter.setPen(QColor(50, 50, 50));
-    painter.drawRect(px, py, blockSize, blockSize);
+    // 根据配置决定是否绘制格子边框
+    if (drawGridBorder) {
+        painter.setPen(QColor(50, 50, 50));
+        painter.drawRect(px, py, blockSize, blockSize);
+    }
 }
 
 void GameWidget::drawHero(QPainter &painter)
@@ -107,17 +118,15 @@ void GameWidget::drawHero(QPainter &painter)
     int py = hero->posy * blockSize;
     
     // 英雄用蓝色圆形表示
-    int margin = 4;
     painter.setBrush(QColor(0, 100, 255));
     painter.setPen(QPen(Qt::white, 2));
-    painter.drawEllipse(px + margin, py + margin, 
-                       blockSize - 2*margin, blockSize - 2*margin);
+    painter.drawEllipse(px + heroMargin, py + heroMargin, 
+                       blockSize - 2*heroMargin, blockSize - 2*heroMargin);
     
     // 根据朝向绘制一个小三角形表示方向
     painter.setBrush(Qt::white);
     int cx = px + blockSize / 2;
     int cy = py + blockSize / 2;
-    int arrowSize = 6;
     
     QPolygon arrow;
     switch (hero->face) {
@@ -182,136 +191,35 @@ QColor GameWidget::getFloorColor(int floorId)
     }
 }
 
-void GameWidget::keyPressEvent(QKeyEvent *event)
+InputAction GameWidget::keyToAction(int key)
 {
-    auto hero = getHeroData();
-    if (!hero) return;
-    
-    int dx = 0, dy = 0;
-    int newFace = hero->face;
-    
-    switch (event->key()) {
+    switch (key) {
         case Qt::Key_Left:
         case Qt::Key_A:
-            dx = -1;
-            newFace = 0;
-            break;
+            return InputAction::MoveLeft;
         case Qt::Key_Up:
         case Qt::Key_W:
-            dy = -1;
-            newFace = 1;
-            break;
+            return InputAction::MoveUp;
         case Qt::Key_Right:
         case Qt::Key_D:
-            dx = 1;
-            newFace = 2;
-            break;
+            return InputAction::MoveRight;
         case Qt::Key_Down:
         case Qt::Key_S:
-            dy = 1;
-            newFace = 3;
-            break;
+            return InputAction::MoveDown;
         default:
-            QWidget::keyPressEvent(event);
-            return;
+            return InputAction::None;
     }
-    
-    // 更新朝向
-    hero->face = newFace;
-    
-    // 尝试移动
-    if (tryMoveHero(dx, dy)) {
-        emit heroStatusChanged();
-    }
-    
-    update();  // 重绘
 }
 
-bool GameWidget::tryMoveHero(int dx, int dy)
+void GameWidget::keyPressEvent(QKeyEvent *event)
 {
-    auto hero = getHeroData();
-    if (!hero) return false;
+    InputAction action = keyToAction(event->key());
     
-    int newX = hero->posx + dx;
-    int newY = hero->posy + dy;
-    
-    // 边界检查
-    if (newX < 0 || newX >= gameData->map.len ||
-        newY < 0 || newY >= gameData->map.wid) {
-        return false;
-    }
-    
-    // 获取目标格子
-    Floor& floor = gameData->map.getFloor(currentFloor);
-    Block& targetBlock = floor.floor[newX][newY];
-    
-    // 检查是否可以通过
-    if (targetBlock.entityId == "wall") {
-        return false;  // 墙壁不可通行
-    }
-    
-    // 处理实体交互
-    if (!handleEntityInteraction(newX, newY)) {
-        return false;  // 交互失败，不能移动
-    }
-    
-    // 移动英雄
-    hero->posx = newX;
-    hero->posy = newY;
-    
-    return true;
-}
-
-bool GameWidget::handleEntityInteraction(int x, int y)
-{
-    Floor& floor = gameData->map.getFloor(currentFloor);
-    Block& block = floor.floor[x][y];
-    QString entityId = block.entityId;
-    
-    // 空气可以直接通过
-    if (entityId == "air" || entityId.isEmpty()) {
-        return true;
-    }
-    
-    // 获取实体数据
-    auto entity = gameData->getEntity(entityId);
-    if (!entity) {
-        return true;  // 没有实体数据，默认可通过
-    }
-    
-    auto hero = getHeroData();
-    
-    // 根据实体类型处理交互
-    if (entity->type == "AIR") {
-        return true;
-    } else if (entity->type == "WALL") {
-        return false;
-    } else if (entity->type == "DOOR") {
-        // TODO: 检查钥匙，开门
-        // 暂时直接通过
-        block.entityId = "air";
-        return true;
-    } else if (entity->type == "ITEM") {
-        // TODO: 拾取物品，增加属性
-        // 暂时直接拾取
-        block.entityId = "air";
-        qDebug() << "拾取物品:" << entityId;
-        return true;
-    } else if (entity->type == "MONSTER") {
-        // TODO: 战斗逻辑
-        // 暂时直接击败
-        block.entityId = "air";
-        qDebug() << "击败怪物:" << entityId;
-        return true;
-    } else if (entity->type == "NPC") {
-        // TODO: 对话系统
-        qDebug() << "与NPC对话:" << entityId;
-        return false;  // NPC不可通过
-    } else if (entity->type == "MERCHANT") {
-        // TODO: 商店系统
-        qDebug() << "商人:" << entityId;
-        return false;  // 商人不可通过
+    if (action != InputAction::None) {
+        // 将输入动作传递给游戏逻辑处理器
+        game->handleInput(action);
+        update();  // 重绘
     } else {
-        return true;
+        QWidget::keyPressEvent(event);
     }
 }
