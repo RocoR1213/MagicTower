@@ -5,22 +5,22 @@
 #include <QWidget>
 #include <QPainter>
 #include <QKeyEvent>
-#include <QTimer>
 #include <memory>
 #include "DataManager.h"
+#include "Config.h"
+#include "game.h"
 
 class GameWidget : public QWidget
 {
     Q_OBJECT
 
 public:
-    explicit GameWidget(Data* data, QWidget *parent = nullptr);
+    explicit GameWidget(Data* data, Config* config, QWidget *parent = nullptr);
     ~GameWidget();
 
-    // 设置当前楼层
-    void setCurrentFloor(int floor);
-    int getCurrentFloor() const { return currentFloor; }
-
+    // 获取游戏逻辑处理器
+    Game* getGame() const { return game; }
+    
     // 获取英雄数据（用于状态面板显示）
     std::shared_ptr<HeroData> getHeroData();
 
@@ -36,6 +36,10 @@ protected:
     // 绑定键盘事件
     void keyPressEvent(QKeyEvent *event) override;
 
+private slots:
+    // 响应游戏状态更新
+    void onMapUpdated();
+
 private:
     // 绘制地图
     void drawMap(QPainter &painter);
@@ -50,16 +54,22 @@ private:
     QColor getEntityColor(const QString &entityId);
     // 获取地板颜色
     QColor getFloorColor(int floorId);
+    
+    // 将键盘按键转换为输入动作
+    InputAction keyToAction(int key);
 
-    // 尝试移动英雄
-    bool tryMoveHero(int dx, int dy);
-    // 处理实体交互
-    bool handleEntityInteraction(int x, int y);
-
+    // 游戏逻辑处理器
+    Game* game;
     // 数据管理器指针
     Data* gameData;
-    // 当前楼层
-    int currentFloor;
-    // 格子大小（像素）
-    int blockSize;
+    // 配置管理器指针
+    Config* gameConfig;
+    
+    // 渲染参数（从配置读取）
+    int blockSize;          // 格子大小（像素）
+    int entityMargin;       // 实体边距（像素）
+    int heroMargin;         // 英雄边距（像素）
+    int arrowSize;          // 方向箭头大小（像素）
+    int entityFontSize;     // 实体标识字体大小
+    bool drawGridBorder;    // 是否绘制网格边框
 };

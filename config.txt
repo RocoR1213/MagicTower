@@ -5,8 +5,23 @@
 #mapLen       // 地图长度（列数）
 #mapWid       // 地图宽度（行数）
 #mapLayers    // 地图层数
-windowHeight=600
-windowWidth=800
+#渲染设置
+#blockSize        // 格子大小（像素）
+#entityMargin     // 实体边距（像素）
+#heroMargin       // 英雄边距（像素）
+#arrowSize        // 方向箭头大小（像素）
+#entityFontSize   // 实体标识字体大小
+#statusPanelWidth // 状态面板宽度
+#drawGridBorder   // 是否绘制网格边框（0或1）
+windowHeight=800
+windowWidth=1000
 mapLen=12
 mapWid=12
 mapLayers=3
+blockSize=64
+entityMargin=4
+heroMargin=6
+arrowSize=10
+entityFontSize=14
+statusPanelWidth=180
+drawGridBorder=0
