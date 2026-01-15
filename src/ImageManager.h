@@ -9,7 +9,7 @@
 // 精灵图切割信息
 struct SpriteInfo {
     int row;    // 行索引（从0开始）
-    int col;    // 列索引（从0开始）
+    int col;    // 列索引（从0开始)
 };
 
 class ImageManager
