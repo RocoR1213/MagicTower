@@ -88,6 +88,9 @@ void ImageManager::loadEnemys()
     
     // 预切割并缓存怪物图片
     entityCache["green_slime"] = cropSprite(enemysSheet, 0, 0);  // 绿史莱姆 - 第一行第一列
+    entityCache["red_slime"] = cropSprite(enemysSheet, 1, 0);     // 红史莱姆 - 第二行第一列
+    entityCache["black_slime"] = cropSprite(enemysSheet, 2, 0);   // 黑史莱姆 - 第三行第一列
+    entityCache["skeleton"] = cropSprite(enemysSheet, 9, 0);      // 骷髅 - 第十行第一列
 }
 
 void ImageManager::loadItems()

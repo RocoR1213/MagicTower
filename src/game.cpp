@@ -54,7 +54,8 @@ bool Game::handleInput(InputAction action)
     }
     
     // 更新朝向
-    if (hero->face != newFace) {
+    if (hero->face != newFace)
+    {
         hero->face = newFace;
         emit heroStatusChanged();
     }
@@ -161,19 +162,21 @@ bool Game::handleItemInteraction(int x, int y, const QString& entityId)
     Block& block = floor.getBlock(x, y);
     
     // 使用长if-else链处理每种物品ID
-    if (entityId.contains("key_yellow")) {
+    if (entityId.contains("yellow_key")) {
         hero->yellow_key++;
-    } else if (entityId.contains("key_blue")) {
+    } else if (entityId.contains("blue_key")) {
         hero->blue_key++;
-    } else if (entityId.contains("key_red")) {
+    } else if (entityId.contains("red_key")) {
         hero->red_key++;
-    } else if (entityId.contains("potion_red")) {
+    } else if (entityId.contains("hp_potion_1")) {
         hero->hp += 200;
-    } else if (entityId.contains("potion_blue")) {
+    } else if (entityId.contains("hp_potion_2")) {
+        hero->hp += 300;
+    } else if (entityId.contains("hp_potion_3")) {
         hero->hp += 500;
-    } else if (entityId.contains("gem_red")) {
+    } else if (entityId.contains("atk_gem")) {
         hero->atk += 3;
-    } else if (entityId.contains("gem_blue")) {
+    } else if (entityId.contains("def_gem")) {
         hero->def += 3;
     }
     

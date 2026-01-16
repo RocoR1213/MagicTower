@@ -1,16 +1,16 @@
 entity
-wall wall wall wall wall wall wall wall wall wall wall wall
-wall air air air air wall air air air red_slime green_slime wall
-wall air air air air wall air air air air air wall
-wall air air air air wall air air air air air wall
-wall air air air air wall air air air air air wall
-wall air air air air air air air air air air wall
-wall wall wall wall wall wall wall air wall wall wall wall
-wall air air air air air air air air air air wall
-wall air air air air air air air air air air wall
-wall air air air air air air air air air air wall
-wall air air air air air air air air air down_stair wall
-wall wall wall wall wall wall wall wall wall wall wall wall
+wall    wall    wall    wall    wall    wall    wall    wall    wall    wall    wall    wall
+wall yellow_key yellow_key wall atk_gem atk_gem wall air wall air air wall
+wall blue_key blue_key wall def_gem def_gem wall air yellow_door green_slime hp_potion_2 wall
+wall black_slime wall wall air air wall yellow_key wall wall wall wall
+wall air air air air air air green_slime air air air wall
+wall air wall wall air wall wall air wall wall wall wall
+wall air wall air air air wall air wall air hp_potion_2 wall
+wall red_slime wall red_slime wall air wall air yellow_door red_slime yellow_key wall
+wall black_slime wall yellow_door wall yellow_door wall air wall wall wall wall
+wall skeleton wall yellow_door wall blue_door wall red_slime wall air air wall
+wall up_stair air air air air wall air yellow_door air down_stair wall
+wall    wall    wall    wall    wall    wall    wall    wall    wall    wall    wall    wall
 floor
 0 0 0 0 0 0 0 0 0 0 0 0
 0 0 0 0 0 0 0 0 0 0 0 0
