@@ -1,0 +1,27 @@
+green_slime MONSTER
+hp=20
+atk=8
+def=1
+gold=1
+traitID=none
+
+red_slime MONSTER
+hp=50
+atk=10
+def=2
+gold=1
+traitID=none
+
+black_slime MONSTER
+hp=100
+atk=15
+def=5
+gold=1
+traitID=none
+
+skeleton MONSTER
+hp=200
+atk=30
+def=8
+gold=1
+traitID=none
